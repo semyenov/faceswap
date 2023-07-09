@@ -4,8 +4,8 @@ import dlib
 import numpy
 
 PREDICTOR_PATH = "./shape_predictor_68_face_landmarks.dat"
-SCALE_FACTOR = 1 
-FEATHER_AMOUNT = 9
+SCALE_FACTOR = 1
+FEATHER_AMOUNT = 15
 
 FACE_POINTS = list(range(17, 68))
 MOUTH_POINTS = list(range(48, 61))
@@ -211,19 +211,19 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                                 im2_blur.astype(numpy.float64))
 
-def swap(img1, img2, outfile=None):
+def swap(input_im, source_im, outfile=None):
     """
     Swaps the faces in two input images.
 
     Args:
-        img1: The path to the first input image.
-        img2: The path to the second input image.
+        img1: The path to the input image.
+        img2: The path to the source image.
 
     Returns:
         None.
     """
-    im1, landmarks1 = read_im_and_landmarks(img1)
-    im2, landmarks2 = read_im_and_landmarks(img2)
+    im1, landmarks1 = read_im_and_landmarks(input_im)
+    im2, landmarks2 = read_im_and_landmarks(source_im)
 
     M = transformation_from_points(landmarks1[ALIGN_POINTS],
                                    landmarks2[ALIGN_POINTS])
@@ -243,12 +243,12 @@ def swap(img1, img2, outfile=None):
     return
 
 # Get images from the command line.
-im1 = sys.argv[1]
-im2 = sys.argv[2]
+input_im = sys.argv[1]
+source_im = sys.argv[2]
 outfile = 'output.jpg'
 
 if len(sys.argv) == 4:
     outfile = sys.argv[3]
 
 # Call the 'swap' function with two image files as arguments
-swap(im1, im2, outfile)
+swap(input_im, source_im, outfile)
