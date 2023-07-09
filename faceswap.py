@@ -1,3 +1,4 @@
+import sys
 import cv2
 import dlib
 import numpy
@@ -17,13 +18,13 @@ JAW_POINTS = list(range(0, 17))
 
 # Points used to line up the images.
 ALIGN_POINTS = (LEFT_BROW_POINTS + RIGHT_EYE_POINTS + LEFT_EYE_POINTS +
-                               RIGHT_BROW_POINTS + NOSE_POINTS + MOUTH_POINTS)
+                               RIGHT_BROW_POINTS + NOSE_POINTS + MOUTH_POINTS + JAW_POINTS)
 
 # Points from the second image to overlay on the first. The convex hull of each
 # element will be overlaid.
 OVERLAY_POINTS = [
     LEFT_EYE_POINTS + RIGHT_EYE_POINTS + LEFT_BROW_POINTS + RIGHT_BROW_POINTS,
-    NOSE_POINTS + MOUTH_POINTS,
+    NOSE_POINTS + MOUTH_POINTS + JAW_POINTS,
 ]
 
 # Amount of blur to use during colour correction, as a fraction of the
@@ -40,6 +41,19 @@ class NoFaces(Exception):
     pass
 
 def get_landmarks(im):
+    """
+    Detects and returns the landmarks of a face in an image.
+
+    Args:
+        im: A numpy array representing the input image.
+
+    Raises:
+        TooManyFaces: If more than one face is detected in the image.
+        NoFaces: If no faces are detected in the image.
+
+    Returns:
+        A numpy matrix representing the coordinates of the facial landmarks.
+    """
     rects = detector(im, 1)
     
     if len(rects) > 1:
@@ -50,6 +64,16 @@ def get_landmarks(im):
     return numpy.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
 
 def annotate_landmarks(im, landmarks):
+    """
+    Annotate landmarks on an image.
+
+    Parameters:
+        - im: The input image to annotate.
+        - landmarks: A list of landmarks.
+
+    Returns:
+        - The annotated image.
+    """
     im = im.copy()
     for idx, point in enumerate(landmarks):
         pos = (point[0, 0], point[0, 1])
@@ -65,6 +89,16 @@ def draw_convex_hull(im, points, color):
     cv2.fillConvexPoly(im, points, color=color)
 
 def get_face_mask(im, landmarks):
+    """
+    Generate a face mask based on the input image and facial landmarks.
+
+    Parameters:
+    - im: An array representing the input image.
+    - landmarks: A dictionary containing the facial landmarks.
+
+    Returns:
+    - im: An array representing the generated face mask.
+    """
     im = numpy.zeros(im.shape[:2], dtype=numpy.float64)
 
     for group in OVERLAY_POINTS:
@@ -80,6 +114,16 @@ def get_face_mask(im, landmarks):
     return im
     
 def transformation_from_points(points1, points2):
+    """
+    Calculate the transformation matrix from two sets of points.
+
+    Args:
+        points1 (ndarray): The first set of points.
+        points2 (ndarray): The second set of points.
+
+    Returns:
+        ndarray: The transformation matrix.
+    """
     points1 = points1.astype(numpy.float64)
     points2 = points2.astype(numpy.float64)
 
@@ -102,6 +146,15 @@ def transformation_from_points(points1, points2):
                          numpy.matrix([0., 0., 1.])])
 
 def read_im_and_landmarks(fname):
+    """
+    Reads an image from a file and extracts facial landmarks.
+
+    Parameters:
+        fname (str): The path to the image file.
+
+    Returns:
+        tuple: A tuple containing the resized image and the facial landmarks.
+    """
     im = cv2.imread(fname, cv2.IMREAD_COLOR)
     im = cv2.resize(im, (im.shape[1] * SCALE_FACTOR,
                          im.shape[0] * SCALE_FACTOR))
@@ -110,6 +163,17 @@ def read_im_and_landmarks(fname):
     return im, s
 
 def warp_im(im, M, dshape):
+    """
+    Applies an affine transformation to the input image.
+
+    Parameters:
+        im (ndarray): The input image.
+        M (ndarray): The 2x3 transformation matrix.
+        dshape (tuple): The shape of the output image.
+
+    Returns:
+        ndarray: The transformed output image.
+    """
     output_im = numpy.zeros(dshape, dtype=im.dtype)
     cv2.warpAffine(im,
                    M[:2],
@@ -120,6 +184,18 @@ def warp_im(im, M, dshape):
     return output_im
 
 def correct_colours(im1, im2, landmarks1):
+    """
+    Corrects the colors of two images using landmarks.
+
+    Args:
+        im1 (numpy.ndarray): The first image.
+        im2 (numpy.ndarray): The second image.
+        landmarks1 (numpy.ndarray): The landmarks of the first image.
+
+    Returns:
+        numpy.ndarray: The color-corrected image.
+
+    """
     blur_amount = COLOUR_CORRECT_BLUR_FRAC * numpy.linalg.norm(
                               numpy.mean(landmarks1[LEFT_EYE_POINTS], axis=0) -
                               numpy.mean(landmarks1[RIGHT_EYE_POINTS], axis=0))
@@ -135,7 +211,17 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                                 im2_blur.astype(numpy.float64))
 
-def swap(img1, img2):
+def swap(img1, img2, outfile=None):
+    """
+    Swaps the faces in two input images.
+
+    Args:
+        img1: The path to the first input image.
+        img2: The path to the second input image.
+
+    Returns:
+        None.
+    """
     im1, landmarks1 = read_im_and_landmarks(img1)
     im2, landmarks2 = read_im_and_landmarks(img2)
 
@@ -152,8 +238,17 @@ def swap(img1, img2):
 
     # output_im = annotate_landmarks(im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask, landmarks1)
     output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
-    cv2.imwrite('output.jpg', output_im)
+    
+    cv2.imwrite(outfile, output_im)
     return
 
+# Get images from the command line.
+im1 = sys.argv[1]
+im2 = sys.argv[2]
+outfile = 'output.jpg'
+
+if len(sys.argv) == 4:
+    outfile = sys.argv[3]
+
 # Call the 'swap' function with two image files as arguments
-swap('face1.jpg', 'face2.jpg')
+swap(im1, im2, outfile)
