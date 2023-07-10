@@ -1,7 +1,10 @@
+import os
 import sys
+import time
 import cv2
 import dlib
 import numpy
+import multiprocessing
 
 PREDICTOR_PATH = "./shape_predictor_68_face_landmarks.dat"
 SCALE_FACTOR = 1
@@ -18,13 +21,13 @@ JAW_POINTS = list(range(0, 17))
 
 # Points used to line up the images.
 ALIGN_POINTS = (LEFT_BROW_POINTS + RIGHT_EYE_POINTS + LEFT_EYE_POINTS +
-                               RIGHT_BROW_POINTS + NOSE_POINTS + MOUTH_POINTS + JAW_POINTS)
+                               RIGHT_BROW_POINTS + NOSE_POINTS + MOUTH_POINTS)
 
 # Points from the second image to overlay on the first. The convex hull of each
 # element will be overlaid.
 OVERLAY_POINTS = [
     LEFT_EYE_POINTS + RIGHT_EYE_POINTS + LEFT_BROW_POINTS + RIGHT_BROW_POINTS,
-    NOSE_POINTS + MOUTH_POINTS + JAW_POINTS,
+    NOSE_POINTS + MOUTH_POINTS,
 ]
 
 # Amount of blur to use during colour correction, as a fraction of the
@@ -56,11 +59,10 @@ def get_landmarks(im):
     """
     rects = detector(im, 1)
     
-    if len(rects) > 1:
-        raise TooManyFaces
     if len(rects) == 0:
         raise NoFaces
 
+    # take just the first face
     return numpy.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
 
 def annotate_landmarks(im, landmarks):
@@ -211,24 +213,26 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                                 im2_blur.astype(numpy.float64))
 
-def swap(input_im, source_im, outfile=None):
+def swap(input_im, outfile=None):
     """
-    Swaps the faces in two input images.
+    Swaps the face in the input image with another image and saves the result to an output file.
 
-    Args:
-        img1: The path to the input image.
-        img2: The path to the source image.
+    Parameters:
+        input_im (str): The path to the input image file.
+        outfile (str, optional): The path to the output file. If not provided, the result will not be saved.
 
     Returns:
-        None.
+        None
     """
-    im1, landmarks1 = read_im_and_landmarks(input_im)
-    im2, landmarks2 = read_im_and_landmarks(source_im)
+    try:
+        im1, landmarks1 = read_im_and_landmarks(input_im)
+    except NoFaces:
+        print("No faces detected")
+        return
 
     M = transformation_from_points(landmarks1[ALIGN_POINTS],
                                    landmarks2[ALIGN_POINTS])
 
-    mask = get_face_mask(im2, landmarks2)
     warped_mask = warp_im(mask, M, im1.shape)
     combined_mask = numpy.max([get_face_mask(im1, landmarks1), warped_mask],
                               axis=0)
@@ -243,12 +247,28 @@ def swap(input_im, source_im, outfile=None):
     return
 
 # Get images from the command line.
-input_im = sys.argv[1]
-source_im = sys.argv[2]
-outfile = 'output.jpg'
+source_im = sys.argv[1]
+im2, landmarks2 = read_im_and_landmarks(source_im)
+mask = get_face_mask(im2, landmarks2)
 
-if len(sys.argv) == 4:
-    outfile = sys.argv[3]
+input_dir = sys.argv[2]
+output_dir = sys.argv[3]
 
-# Call the 'swap' function with two image files as arguments
-swap(input_im, source_im, outfile)
+# loop input images in the directory
+for input_im in os.listdir(input_dir):
+    filename = os.path.basename(input_im)
+    inputfile = os.path.join(input_dir, input_im)
+    outfile = os.path.join(output_dir, filename)
+
+    # print time for each image
+    start_time = time.time()
+    print(f"\nInput File: {inputfile}")
+    print(f"Output File: {outfile}")
+    
+    # swap the image in parallel
+    p = multiprocessing.Process(target=swap, args=(inputfile, outfile))
+    end_time = time.time()
+    p.start()
+
+    print(f"Swap completed in {end_time - start_time} seconds")
+
