@@ -1,32 +1,33 @@
 #!/usr/bin/env zsh
 
-# "a1df40d4-c67e-11ea-902b-00505682fbe9"
-# "95ddf580-edcd-11e6-adbc-00155d800308"
-# "81271618-dc84-11e5-beed-00155d800305"
-# "69ed6a14-674f-11e0-966e-00248ce13817"
-# "4d5d355d-674e-11e0-966e-00248ce13817"
-# "e1c4a7af-9e72-11ea-9028-00505682fbe9"
-# "4d5d3557-674e-11e0-966e-00248ce13817"
-# "fcb39cf8-6750-11e0-966e-00248ce13817"
-# "14f82be5-239f-11e9-8a77-005056a0dbcd"
-# "d7bd71e9-674f-11e0-966e-00248ce13817"
-# "e1c4a7af-9e72-11ea-9028-00505682fbe9"
-# "bf75aa41-6750-11e0-966e-00248ce13817"
-# "1c8c84df-dd52-11ea-902b-00505682fbe9"
-# "dba3420f-cdd8-11eb-904b-00505682fbe9"
-# "d7bd71e4-674f-11e0-966e-00248ce13817"
-# "de850f56-122c-11ed-9066-005056bb6e68"
-# "95ddf580-edcd-11e6-adbc-00155d800308"
-
 set -euo pipefail
 
 # set the list of files
-SOURCE_FILE_UUIDS=($@)
+declare -A SOURCE_FILE_UUIDS
+SOURCE_FILE_UUIDS=(
+    "a1df40d4-c67e-11ea-902b-00505682fbe9"
+    "95ddf580-edcd-11e6-adbc-00155d800308"
+    "81271618-dc84-11e5-beed-00155d800305"
+    "69ed6a14-674f-11e0-966e-00248ce13817"
+    "4d5d355d-674e-11e0-966e-00248ce13817"
+    "e1c4a7af-9e72-11ea-9028-00505682fbe9"
+    "4d5d3557-674e-11e0-966e-00248ce13817"
+    "fcb39cf8-6750-11e0-966e-00248ce13817"
+    "14f82be5-239f-11e9-8a77-005056a0dbcd"
+    "d7bd71e9-674f-11e0-966e-00248ce13817"
+    "e1c4a7af-9e72-11ea-9028-00505682fbe9"
+    "bf75aa41-6750-11e0-966e-00248ce13817"
+    "1c8c84df-dd52-11ea-902b-00505682fbe9"
+    "dba3420f-cdd8-11eb-904b-00505682fbe9"
+    "d7bd71e4-674f-11e0-966e-00248ce13817"
+    "de850f56-122c-11ed-9066-005056bb6e68"
+    "95ddf580-edcd-11e6-adbc-00155d800308"
+)
 declare -r SOURCE_FILE_UUIDS
 
 # set the input/output directory
 IN_DIR="./images"
-OUT_DIR="./out"
+OUT_DIR="~/Public/s"
 
 # remove empty files
 find $IN_DIR -type f -empty -delete
