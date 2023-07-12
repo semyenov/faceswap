@@ -139,7 +139,7 @@ def transformation_from_points(points1, points2):
     points1 /= s1
     points2 /= s2
 
-    U, S, Vt = numpy.linalg.svd(points1.T * points2)
+    U, _, Vt = numpy.linalg.svd(points1.T * points2)
 
     R = (U * Vt).T
 
@@ -224,6 +224,12 @@ def swap(input_im, outfile=None):
     Returns:
         None
     """
+    print(f"\nInput File: {input_im}")
+    print(f"Output File: {outfile}")
+
+    # print time for each image
+    start_time = time.time()
+
     try:
         im1, landmarks1 = read_im_and_landmarks(input_im)
     except NoFaces:
@@ -242,8 +248,11 @@ def swap(input_im, outfile=None):
 
     # output_im = annotate_landmarks(im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask, landmarks1)
     output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
-    
     cv2.imwrite(outfile, output_im)
+
+    end_time = time.time()
+    print(f"Swap completed in {end_time - start_time} seconds")
+
     return
 
 # Get images from the command line.
@@ -260,15 +269,7 @@ for input_im in os.listdir(input_dir):
     inputfile = os.path.join(input_dir, input_im)
     outfile = os.path.join(output_dir, filename)
 
-    # print time for each image
-    start_time = time.time()
-    print(f"\nInput File: {inputfile}")
-    print(f"Output File: {outfile}")
-    
     # swap the image in parallel
     p = multiprocessing.Process(target=swap, args=(inputfile, outfile))
-    end_time = time.time()
     p.start()
-
-    print(f"Swap completed in {end_time - start_time} seconds")
 
