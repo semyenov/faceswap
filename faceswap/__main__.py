@@ -269,7 +269,7 @@ def swap(
         source_mask (numpy.ndarray): The mask of the face in the source image.
         input_file (str): The path to the input image file.
         output_file (str): The path to save the output image.
-        debug (bool, optional): If True, the function will output annotated landmarks on the image. 
+        debug (bool, optional): If True, the function will output annotated landmarks on the image.
             Defaults to False.
 
     Returns:
@@ -291,7 +291,9 @@ def swap(
     )
 
     warped_mask = warp_im(source_mask, M, input_im.shape)
-    combined_mask = numpy.max([get_face_mask(input_im, input_landmarks), warped_mask], axis=0)
+    combined_mask = numpy.max(
+        [get_face_mask(input_im, input_landmarks), warped_mask], axis=0
+    )
 
     warped_im2 = warp_im(source_im, M, input_im.shape)
     warped_corrected_im2 = correct_colours(input_im, warped_im2, input_landmarks)
@@ -302,7 +304,9 @@ def swap(
             input_landmarks,
         )
     else:
-        output_im = input_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
+        output_im = (
+            input_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
+        )
 
     cv2.imwrite(output_file, output_im)
 
@@ -337,16 +341,19 @@ def main():
             source_im, source_landmarks = read_im_and_landmarks(args.source_file)
             source_mask = get_face_mask(source_im, source_landmarks)
 
-            process_func = lambda input_im: swap(
-                source_im,
-                source_landmarks,
-                source_mask,
-                input_file=os.path.join(args.input_dir, input_im),
-                output_file=os.path.join(args.output_dir, os.path.basename(input_im)),
-                debug=args.debug,
+            executor.map(
+                lambda input_im: swap(
+                    source_im,
+                    source_landmarks,
+                    source_mask,
+                    input_file=os.path.join(args.input_dir, input_im),
+                    output_file=os.path.join(
+                        args.output_dir, os.path.basename(input_im)
+                    ),
+                    debug=args.debug,
+                ),
+                os.listdir(args.input_dir),
             )
-
-            executor.map(process_func, os.listdir(args.input_dir))
         except NoFaces:
             logger.error("\nNo faces detected: source file is invalid")
             return
