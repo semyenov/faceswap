@@ -1,3 +1,4 @@
+from ctypes import ArgumentError
 import logging
 import os
 import sys
@@ -9,7 +10,7 @@ import argparse
 import concurrent.futures
 
 PREDICTOR_PATH = os.path.join(
-    os.path.dirname(__file__), "./shape_predictor_68_face_landmarks.dat"
+    os.path.dirname(__file__), "shape_predictor_68_face_landmarks.dat"
 )
 
 SCALE_FACTOR = 1
@@ -358,7 +359,7 @@ def main():
         except NoFaces:
             logger.error("\nNo faces detected: source file is invalid")
             return
-        except:
+        except ArgumentError:
             if args.debug:
                 logger.error("\nUnexpected error:", sys.exc_info()[0])
             else:

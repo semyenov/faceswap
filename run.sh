@@ -8,10 +8,8 @@ IN_DIR="input"
 OUT_DIR="output"
 
 # set the list of files
-# https://github.com/junegunn/fzf
 declare -a SOURCE_FILES
-SOURCE_FILES=($(FZF_DEFAULT_COMMAND="find $IN_DIR -type f -not -name .gitkeep" fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap ))
-declare -r SOURCE_FILES
+IFS=$'\n' read -A SOURCE_FILES <<< "$(FZF_DEFAULT_COMMAND="find $IN_DIR -type f -not -name .gitkeep" fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap)"
 
 # remove empty files except .gitkeep
 find $IN_DIR -type f -not -name .gitkeep -empty -delete
