@@ -3,26 +3,10 @@
 set -euo pipefail
 
 # set the list of files
+# https://github.com/junegunn/fzf
 declare -a SOURCE_FILES
-SOURCE_FILES=(
-    "input/a1df40d4-c67e-11ea-902b-00505682fbe9.jpg"
-    "input/95ddf580-edcd-11e6-adbc-00155d800308.jpg"
-    "input/81271618-dc84-11e5-beed-00155d800305.jpg"
-    "input/69ed6a14-674f-11e0-966e-00248ce13817.jpg"
-    "input/4d5d355d-674e-11e0-966e-00248ce13817.jpg"
-    "input/e1c4a7af-9e72-11ea-9028-00505682fbe9.jpg"
-    "input/4d5d3557-674e-11e0-966e-00248ce13817.jpg"
-    "input/fcb39cf8-6750-11e0-966e-00248ce13817.jpg"
-    "input/14f82be5-239f-11e9-8a77-005056a0dbcd.jpg"
-    "input/d7bd71e9-674f-11e0-966e-00248ce13817.jpg"
-    "input/e1c4a7af-9e72-11ea-9028-00505682fbe9.jpg"
-    "input/bf75aa41-6750-11e0-966e-00248ce13817.jpg"
-    "input/1c8c84df-dd52-11ea-902b-00505682fbe9.jpg"
-    "input/dba3420f-cdd8-11eb-904b-00505682fbe9.jpg"
-    "input/d7bd71e4-674f-11e0-966e-00248ce13817.jpg"
-    "input/de850f56-122c-11ed-9066-005056bb6e68.jpg"
-    "input/95ddf580-edcd-11e6-adbc-00155d800308.jpg"
-)
+FZF_DEFAULT_COMMAND="find ./ -type f -not -name .gitkeep"
+SOURCE_FILES=($(fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap))
 declare -r SOURCE_FILES
 
 # set the input/output directory
@@ -50,27 +34,32 @@ function run {
 
         # call the Python script with the source face and current file as input
         echo "\n*** Processing\n$source_file\n"
-        python3 faceswap "$source_file" "$IN_DIR" "$output_dir"
+        python3 faceswap "./$source_file" "$IN_DIR" "$output_dir"
         echo "*** Done\n"
     done
 }
 
 function view {
     declare -a images
-    images=()
+    local images=()
     for source_file in $SOURCE_FILES; do
-        images+=$(find $OUT_DIR -iname "$(basename "$source_file")")
+        images+=($(find $OUT_DIR -iname "$(basename "$source_file")"))
     done
+    declare -r images
 
-    declare -r SOURCE_FILES
     echo "\n\n*** View images\n$images\n"
     echo "$images"
     feh -FZ "$images"
 }
 
-echo "1. Run"
-echo "2. View"
-read "option?Select an option: " 
+echo "Selected source files:"
+for source_file in $SOURCE_FILES; do
+    echo "$source_file"
+done
+
+echo "\t1. Run"
+echo "\t2. View"
+read "option?Select an option > " 
 
 case $option in
   1)

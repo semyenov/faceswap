@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 import cv2
 import dlib
@@ -356,6 +357,12 @@ def main():
             )
         except NoFaces:
             logger.error("\nNo faces detected: source file is invalid")
+            return
+        except:
+            if args.debug:
+                logger.error("\nUnexpected error:", sys.exc_info()[0])
+            else:
+                logger.error("\nUnexpected error: source file is invalid")
             return
 
         executor.shutdown()
