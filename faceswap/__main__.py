@@ -237,7 +237,7 @@ def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
         None
     """
     print(f"\nInput File: {inputfile}")
-    print(f"Output File: {outfile}")
+    print(f"\nOutput File: {outfile}")
 
     # print time for each image
     start_time = time.time()
@@ -245,7 +245,7 @@ def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
     try:
         im1, landmarks1 = read_im_and_landmarks(inputfile)
     except NoFaces:
-        print("No faces detected")
+        print("\nNo faces detected: input file is invalid")
         return
 
     M = transformation_from_points(landmarks1[ALIGN_POINTS],
@@ -266,7 +266,7 @@ def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
     cv2.imwrite(outfile, output_im)
     
     end_time = time.time()
-    print(f"Swap completed in {end_time - start_time} seconds")
+    print(f"\n\nSwap completed in {end_time - start_time} seconds")
 
     return
 
@@ -288,11 +288,14 @@ def main():
         inputfile = os.path.join(args.input_dir, args.input_im)
         outfile = os.path.join(args.output_dir, filename)
         
-        im2, landmarks2 = read_im_and_landmarks(args.source_im)
-        mask = get_face_mask(im2, landmarks2)
+        try:
+            im2, landmarks2 = read_im_and_landmarks(args.source_im)
+            mask = get_face_mask(im2, landmarks2)
+            process_func = partial(swap, im2, landmarks2, mask, inputfile, outfile)
+            executor.map(process_func, os.listdir(args.input_dir))
+        except NoFaces:
+            print("\nNo faces detected: source file is invalid")
+            return
         
-        process_func = partial(swap, im2, landmarks2, mask, inputfile, outfile)
-        executor.map(process_func, os.listdir(args.input_dir))
-
 if __name__ == '__main__':
     main()
