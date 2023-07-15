@@ -236,8 +236,7 @@ def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
     Returns:
         None
     """
-    print(f"\nInput File: {inputfile}")
-    print(f"\nOutput File: {outfile}")
+    print(f"\n\nInput File: {inputfile}")
 
     # print time for each image
     start_time = time.time()
@@ -266,7 +265,8 @@ def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
     cv2.imwrite(outfile, output_im)
     
     end_time = time.time()
-    print(f"\n\nSwap completed in {end_time - start_time} seconds")
+    print(f"\nOutput File: {outfile}")
+    print(f"\nProcessing time: {end_time - start_time} seconds")
 
     return
 
