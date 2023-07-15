@@ -316,14 +316,18 @@ def main():
     args = parser.parse_args()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        filename = os.path.basename(args.input_im)
-        inputfile = os.path.join(args.input_dir, args.input_im)
-        outfile = os.path.join(args.output_dir, filename)
-
         try:
             im2, landmarks2 = read_im_and_landmarks(args.source_im)
             mask = get_face_mask(im2, landmarks2)
-            process_func = partial(swap, im2, landmarks2, mask, inputfile, outfile)
+
+            process_func = lambda input_im: swap(
+                im2,
+                landmarks2,
+                mask,
+                os.path.join(args.input_dir, input_im),
+                os.path.join(args.output_dir, os.path.basename(input_im)),
+            )
+
             executor.map(process_func, os.listdir(args.input_dir))
         except NoFaces:
             print("\nNo faces detected: source file is invalid")
