@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import cv2
@@ -5,7 +6,6 @@ import dlib
 import numpy
 import argparse
 import concurrent.futures
-from functools import partial
 
 PREDICTOR_PATH = os.path.join(
     os.path.dirname(__file__), "./shape_predictor_68_face_landmarks.dat"
@@ -43,6 +43,8 @@ OVERLAY_POINTS = [
 # Amount of blur to use during colour correction, as a fraction of the
 # pupillary distance.
 COLOUR_CORRECT_BLUR_FRAC = 0.8
+
+logger = logging.getLogger(__name__)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(PREDICTOR_PATH)
@@ -139,7 +141,7 @@ def get_face_mask(im, landmarks):
 
     im = numpy.array([im, im, im]).transpose((1, 2, 0))
 
-    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * 1.0
+    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * SCALE_FACTOR
     im = cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0)
 
     return im
@@ -255,49 +257,58 @@ def correct_colours(im1, im2, landmarks1):
     )
 
 
-def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
+def swap(
+    source_im, source_landmarks, source_mask, input_file, output_file, debug=False
+):
     """
-    Swaps the face in the input image with another image and saves the result to an output file.
+    This function swaps the face in the input image with the face in the source image.
 
     Parameters:
-        input_im (str): The path to the input image file.
-        outfile (str, optional): The path to the output file. If not provided, the result will not be saved.
+        source_im (numpy.ndarray): The source image containing the face to be swapped.
+        source_landmarks (numpy.ndarray): The landmarks of the face in the source image.
+        source_mask (numpy.ndarray): The mask of the face in the source image.
+        input_file (str): The path to the input image file.
+        output_file (str): The path to save the output image.
+        debug (bool, optional): If True, the function will output annotated landmarks on the image. 
+            Defaults to False.
 
     Returns:
         None
     """
-    print(f"\n\nInput File: {inputfile}")
+    logger.log(f"\n\nInput File: {input_file}")
 
     # print time for each image
     start_time = time.time()
 
     try:
-        im1, landmarks1 = read_im_and_landmarks(inputfile)
+        input_im, input_landmarks = read_im_and_landmarks(input_file)
     except NoFaces:
-        print("\nNo faces detected: input file is invalid")
+        logger.error("\nNo faces detected: input file is invalid")
         return
 
-    M = transformation_from_points(landmarks1[ALIGN_POINTS], landmarks2[ALIGN_POINTS])
+    M = transformation_from_points(
+        input_landmarks[ALIGN_POINTS], source_landmarks[ALIGN_POINTS]
+    )
 
-    warped_mask = warp_im(mask, M, im1.shape)
-    combined_mask = numpy.max([get_face_mask(im1, landmarks1), warped_mask], axis=0)
+    warped_mask = warp_im(source_mask, M, input_im.shape)
+    combined_mask = numpy.max([get_face_mask(input_im, input_landmarks), warped_mask], axis=0)
 
-    warped_im2 = warp_im(im2, M, im1.shape)
-    warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
+    warped_im2 = warp_im(source_im, M, input_im.shape)
+    warped_corrected_im2 = correct_colours(input_im, warped_im2, input_landmarks)
 
     if debug:
         output_im = annotate_landmarks(
-            im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask,
-            landmarks1,
+            input_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask,
+            input_landmarks,
         )
     else:
-        output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
+        output_im = input_im * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
 
-    cv2.imwrite(outfile, output_im)
+    cv2.imwrite(output_file, output_im)
 
     end_time = time.time()
-    print(f"\nOutput File: {outfile}")
-    print(f"\nProcessing time: {end_time - start_time} seconds")
+    logger.log(f"\nOutput File: {output_file}")
+    logger.log(f"\nProcessing time: {end_time - start_time} seconds")
 
     return
 
@@ -310,28 +321,37 @@ def main():
     :return None
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("source_im", help="Path to source image")
+    parser.add_argument("source_file", help="Path to source image")
     parser.add_argument("input_dir", help="Input directory")
     parser.add_argument("output_dir", help="Output directory")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode",
+        default=False,
+    )
     args = parser.parse_args()
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         try:
-            im2, landmarks2 = read_im_and_landmarks(args.source_im)
-            mask = get_face_mask(im2, landmarks2)
+            source_im, source_landmarks = read_im_and_landmarks(args.source_file)
+            source_mask = get_face_mask(source_im, source_landmarks)
 
             process_func = lambda input_im: swap(
-                im2,
-                landmarks2,
-                mask,
-                os.path.join(args.input_dir, input_im),
-                os.path.join(args.output_dir, os.path.basename(input_im)),
+                source_im,
+                source_landmarks,
+                source_mask,
+                input_file=os.path.join(args.input_dir, input_im),
+                output_file=os.path.join(args.output_dir, os.path.basename(input_im)),
+                debug=args.debug,
             )
 
             executor.map(process_func, os.listdir(args.input_dir))
         except NoFaces:
-            print("\nNo faces detected: source file is invalid")
+            logger.error("\nNo faces detected: source file is invalid")
             return
+
+        executor.shutdown()
 
 
 if __name__ == "__main__":
