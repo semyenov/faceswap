@@ -42,16 +42,16 @@ function run {
         fi
 
         # reset the output directory
-        local output_dir=$OUT_DIR/$source_file
+        local output_dir=$OUT_DIR/$(basename ${source_file%.*})
         rm -rf $output_dir
         if [ ! -d $output_dir ]; then
             mkdir -p $output_dir
         fi
 
         # call the Python script with the source face and current file as input
-        echo "\n\n*** Processing\n$source_file\n"
+        echo "\n*** Processing\n$source_file\n"
         python3 faceswap "$source_file" "$IN_DIR" "$output_dir"
-        echo "*** Finished processing $source_file\n"
+        echo "*** Done\n"
     done
 }
 
