@@ -1,17 +1,17 @@
 #!/usr/bin/env zsh
 
+# set the zsh options
 set -euo pipefail
-
-# set the list of files
-# https://github.com/junegunn/fzf
-declare -a SOURCE_FILES
-FZF_DEFAULT_COMMAND="find ./ -type f -not -name .gitkeep"
-SOURCE_FILES=($(fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap))
-declare -r SOURCE_FILES
 
 # set the input/output directory
 IN_DIR="input"
 OUT_DIR="output"
+
+# set the list of files
+# https://github.com/junegunn/fzf
+declare -a SOURCE_FILES
+SOURCE_FILES=($(FZF_DEFAULT_COMMAND="find $IN_DIR -type f -not -name .gitkeep" fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap ))
+declare -r SOURCE_FILES
 
 # remove empty files except .gitkeep
 find $IN_DIR -type f -not -name .gitkeep -empty -delete
@@ -33,9 +33,9 @@ function run {
         fi
 
         # call the Python script with the source face and current file as input
-        echo "\n*** Processing\n$source_file\n"
-        python3 faceswap "./$source_file" "$IN_DIR" "$output_dir"
-        echo "*** Done\n"
+        echo "\n*** Processing $source_file"
+        python3 faceswap "./$source_file" "./$IN_DIR" "./$output_dir"
+        echo "***"
     done
 }
 
@@ -52,7 +52,7 @@ function view {
     feh -FZ "$images"
 }
 
-echo "Selected source files:"
+echo "Select source files > "
 for source_file in $SOURCE_FILES; do
     echo "$source_file"
 done
