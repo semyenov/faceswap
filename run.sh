@@ -35,11 +35,11 @@ find $IN_DIR -type f -not -name .gitkeep -empty -delete
 function run {
     # iterate over each file in list
     for source_file in $SOURCE_FILES; do 
-        # check if file exists
-        # if [ ! -f $source_file ]; then
-        #     echo "$source_file does not exist"
-        #     continue
-        # fi
+        check if file exists
+        if [ ! -f $source_file ]; then
+            echo "$source_file does not exist"
+            continue
+        fi
 
         # reset the output directory
         local output_dir=$OUT_DIR/$source_file
