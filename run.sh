@@ -36,10 +36,10 @@ function run {
     # iterate over each file in list
     for source_file in $SOURCE_FILES; do 
         # check if file exists
-        if [ ! -f $source_file ]; then
-            echo "$source_file does not exist"
-            continue
-        fi
+        # if [ ! -f $source_file ]; then
+        #     echo "$source_file does not exist"
+        #     continue
+        # fi
 
         # reset the output directory
         local output_dir=$OUT_DIR/$source_file
@@ -50,7 +50,7 @@ function run {
 
         # call the Python script with the source face and current file as input
         echo "\n\n*** Processing\n$source_file\n"
-        python3 faceswap --source_im="$source_file" --input_dir="$IN_DIR" --output_dir="$output_dir"
+        python3 faceswap "$source_file" "$IN_DIR" "$output_dir"
         echo "*** Finished processing $source_file\n"
     done
 }
