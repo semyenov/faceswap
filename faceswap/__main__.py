@@ -1,10 +1,11 @@
 import os
-import sys
 import time
 import cv2
 import dlib
 import numpy
-import multiprocessing
+import argparse
+import concurrent.futures
+from functools import partial
 
 PREDICTOR_PATH = "./shape_predictor_68_face_landmarks.dat"
 SCALE_FACTOR = 1
@@ -87,6 +88,17 @@ def annotate_landmarks(im, landmarks):
     return im
 
 def draw_convex_hull(im, points, color):
+    """
+    Draws the convex hull of a set of points on an image.
+
+    Args:
+        im (Image): The image on which to draw the convex hull.
+        points (List[List[int]]): The points to calculate the convex hull from.
+        color (Tuple[int, int, int]): The color to fill the convex hull with.
+
+    Returns:
+        None
+    """
     points = cv2.convexHull(points)
     cv2.fillConvexPoly(im, points, color=color)
 
@@ -213,7 +225,7 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                                 im2_blur.astype(numpy.float64))
 
-def swap(input_im, outfile=None):
+def swap(im2, landmarks2, mask, inputfile, outfile):
     """
     Swaps the face in the input image with another image and saves the result to an output file.
 
@@ -224,14 +236,14 @@ def swap(input_im, outfile=None):
     Returns:
         None
     """
-    print(f"\nInput File: {input_im}")
+    print(f"\nInput File: {inputfile}")
     print(f"Output File: {outfile}")
 
     # print time for each image
     start_time = time.time()
 
     try:
-        im1, landmarks1 = read_im_and_landmarks(input_im)
+        im1, landmarks1 = read_im_and_landmarks(inputfile)
     except NoFaces:
         print("No faces detected")
         return
@@ -255,21 +267,23 @@ def swap(input_im, outfile=None):
 
     return
 
-# Get images from the command line.
-source_im = sys.argv[1]
-im2, landmarks2 = read_im_and_landmarks(source_im)
-mask = get_face_mask(im2, landmarks2)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('source_im', help='Path to source image')
+    parser.add_argument('input_dir', help='Input directory')
+    parser.add_argument('output_dir', help='Output directory')
+    args = parser.parse_args()
 
-input_dir = sys.argv[2]
-output_dir = sys.argv[3]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        filename = os.path.basename(args.input_im)
+        inputfile = os.path.join(args.input_dir, args.input_im)
+        outfile = os.path.join(args.output_dir, filename)
+        
+        im2, landmarks2 = read_im_and_landmarks(args.source_im)
+        mask = get_face_mask(im2, landmarks2)
+        
+        process_func = partial(swap, im2, landmarks2, mask, inputfile, outfile)
+        executor.map(process_func, os.listdir(args.input_dir))
 
-# loop input images in the directory
-for input_im in os.listdir(input_dir):
-    filename = os.path.basename(input_im)
-    inputfile = os.path.join(input_dir, input_im)
-    outfile = os.path.join(output_dir, filename)
-
-    # swap the image in parallel
-    p = multiprocessing.Process(target=swap, args=(inputfile, outfile))
-    p.start()
-
+if __name__ == '__main__':
+    main()

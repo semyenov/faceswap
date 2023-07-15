@@ -3,67 +3,69 @@
 set -euo pipefail
 
 # set the list of files
-declare -A SOURCE_FILE_UUIDS
-SOURCE_FILE_UUIDS=(
-    "a1df40d4-c67e-11ea-902b-00505682fbe9"
-    "95ddf580-edcd-11e6-adbc-00155d800308"
-    "81271618-dc84-11e5-beed-00155d800305"
-    "69ed6a14-674f-11e0-966e-00248ce13817"
-    "4d5d355d-674e-11e0-966e-00248ce13817"
-    "e1c4a7af-9e72-11ea-9028-00505682fbe9"
-    "4d5d3557-674e-11e0-966e-00248ce13817"
-    "fcb39cf8-6750-11e0-966e-00248ce13817"
-    "14f82be5-239f-11e9-8a77-005056a0dbcd"
-    "d7bd71e9-674f-11e0-966e-00248ce13817"
-    "e1c4a7af-9e72-11ea-9028-00505682fbe9"
-    "bf75aa41-6750-11e0-966e-00248ce13817"
-    "1c8c84df-dd52-11ea-902b-00505682fbe9"
-    "dba3420f-cdd8-11eb-904b-00505682fbe9"
-    "d7bd71e4-674f-11e0-966e-00248ce13817"
-    "de850f56-122c-11ed-9066-005056bb6e68"
-    "95ddf580-edcd-11e6-adbc-00155d800308"
+declare -a SOURCE_FILES
+SOURCE_FILES=(
+    "input/a1df40d4-c67e-11ea-902b-00505682fbe9.jpg"
+    "input/95ddf580-edcd-11e6-adbc-00155d800308.jpg"
+    "input/81271618-dc84-11e5-beed-00155d800305.jpg"
+    "input/69ed6a14-674f-11e0-966e-00248ce13817.jpg"
+    "input/4d5d355d-674e-11e0-966e-00248ce13817.jpg"
+    "input/e1c4a7af-9e72-11ea-9028-00505682fbe9.jpg"
+    "input/4d5d3557-674e-11e0-966e-00248ce13817.jpg"
+    "input/fcb39cf8-6750-11e0-966e-00248ce13817.jpg"
+    "input/14f82be5-239f-11e9-8a77-005056a0dbcd.jpg"
+    "input/d7bd71e9-674f-11e0-966e-00248ce13817.jpg"
+    "input/e1c4a7af-9e72-11ea-9028-00505682fbe9.jpg"
+    "input/bf75aa41-6750-11e0-966e-00248ce13817.jpg"
+    "input/1c8c84df-dd52-11ea-902b-00505682fbe9.jpg"
+    "input/dba3420f-cdd8-11eb-904b-00505682fbe9.jpg"
+    "input/d7bd71e4-674f-11e0-966e-00248ce13817.jpg"
+    "input/de850f56-122c-11ed-9066-005056bb6e68.jpg"
+    "input/95ddf580-edcd-11e6-adbc-00155d800308.jpg"
 )
-declare -r SOURCE_FILE_UUIDS
+declare -r SOURCE_FILES
 
 # set the input/output directory
-IN_DIR="./images"
-OUT_DIR="~/Public/s"
+IN_DIR="input"
+OUT_DIR="output"
 
 # remove empty files
 find $IN_DIR -type f -empty -delete
 
 function run {
-    source ./venv/bin/activate
-
     # iterate over each file in list
-    for source_file_uuid in $SOURCE_FILE_UUIDS; do 
-        echo "\n\n****** Processing $source_file_uuid ***\n"
+    for source_file in $SOURCE_FILES; do 
 
-        local source_file=$IN_DIR/$source_file_uuid.jpg
         if [ ! -f $source_file ]; then
             echo "$source_file does not exist"
             continue
         fi
 
         # reset the output directory
-        local output_dir=$OUT_DIR/$source_file_uuid
+        local output_dir=$OUT_DIR/$source_file
         rm -rf $output_dir
         if [ ! -d $output_dir ]; then
             mkdir -p $output_dir
         fi
 
         # call the Python script with the source face and current file as input
-        python3 faceswap.py $source_file $IN_DIR $output_dir
+        echo "\n\n*** Processing\n$source_file\n"
+        python3 faceswap --source_im="$source_file" --input_dir="$IN_DIR" --output_dir="$output_dir"
+        echo "*** Finished processing $source_file\n"
     done
 }
 
 function view {
+    declare -a images
     images=()
-    for source_file_uuid in $SOURCE_FILE_UUIDS; do
-        images+=("$(find $OUT_DIR -iname "$source_file_uuid.jpg")")
+    for source_file in $SOURCE_FILES; do
+        images+=("$(find $OUT_DIR -iname "$(basename "$source_file")")")
     done
 
-    feh -FZ $images
+    declare -r SOURCE_FILES
+    echo "\n\n*** View images\n$images\n"
+    echo "$images"
+    feh -FZ "$images"
 }
 
 echo "1. Run"

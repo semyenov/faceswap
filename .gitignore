@@ -11,5 +11,10 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 
-images/*.jpg
-out/*.jpg
+# Input images
+input/*
+!input/.gitkeep
+
+# Output images
+output/*
+!output/.gitkeep
