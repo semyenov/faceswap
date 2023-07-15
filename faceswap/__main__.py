@@ -225,7 +225,7 @@ def correct_colours(im1, im2, landmarks1):
     return (im2.astype(numpy.float64) * im1_blur.astype(numpy.float64) /
                                                 im2_blur.astype(numpy.float64))
 
-def swap(im2, landmarks2, mask, inputfile, outfile):
+def swap(im2, landmarks2, mask, inputfile, outfile, debug=False):
     """
     Swaps the face in the input image with another image and saves the result to an output file.
 
@@ -258,16 +258,25 @@ def swap(im2, landmarks2, mask, inputfile, outfile):
     warped_im2 = warp_im(im2, M, im1.shape)
     warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
 
-    # output_im = annotate_landmarks(im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask, landmarks1)
-    output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
-    cv2.imwrite(outfile, output_im)
+    if debug:
+        output_im = annotate_landmarks(im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask, landmarks1)
+    else:
+        output_im = im1 * (1.0 - combined_mask) + warped_corrected_im2 * combined_mask
 
+    cv2.imwrite(outfile, output_im)
+    
     end_time = time.time()
     print(f"Swap completed in {end_time - start_time} seconds")
 
     return
 
 def main():
+    """
+    Parse command line arguments, read source image and landmarks, get face mask, and process images in parallel using a thread pool executor.
+    
+    :param None
+    :return None
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('source_im', help='Path to source image')
     parser.add_argument('input_dir', help='Input directory')
