@@ -8,8 +8,7 @@ IN_DIR="input"
 OUT_DIR="output"
 
 # set the list of files
-declare -a SOURCE_FILES
-IFS=$'\n' read -A SOURCE_FILES <<< "$(FZF_DEFAULT_COMMAND="find $IN_DIR -type f -not -name .gitkeep" fzf -m --preview "cat {}" --prompt="Select source files > " --preview-window=right:50%:wrap)"
+IFS=$'\n' read -A SOURCE_FILES <<< "$(FZF_DEFAULT_COMMAND="find $IN_DIR -type f -not -name .gitkeep" fzf -m --preview "cat {}" --prompt="Select source files: " --preview-window=right:50%:wrap)"
 declare -r SOURCE_FILES
 
 # remove empty files except .gitkeep
@@ -32,7 +31,7 @@ function run {
         fi
 
         # call the Python script with the source face and current file as input
-        echo "***\nProcessing $source_file"
+        echo "***\nProcessing: $source_file"
         python3 faceswap "./$source_file" "./$IN_DIR" "./$output_dir"
         echo ""
     done
@@ -46,18 +45,18 @@ function view {
     done
     declare -r images
 
-    echo "***\nViewing $images\n"
+    echo "***\nViewing: $images\n"
     feh -FZ "$images"
 }
 
-echo -n "***\nSelect source files > "
+echo -n "***\nSelect source files: "
 for source_file in $SOURCE_FILES; do
     echo -n "$source_file "
 done
 
 echo "\n\n***\n1. Run"
 echo "2. View"
-read "option?Select an option > " 
+read "option?Select an option: " 
 echo ""
 
 case $option in
