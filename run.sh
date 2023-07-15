@@ -59,7 +59,7 @@ function view {
     declare -a images
     images=()
     for source_file in $SOURCE_FILES; do
-        images+=("$(find $OUT_DIR -iname "$(basename "$source_file")")")
+        images+=$(find $OUT_DIR -iname "$(basename "$source_file")")
     done
 
     declare -r SOURCE_FILES
