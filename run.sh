@@ -29,8 +29,8 @@ declare -r SOURCE_FILES
 IN_DIR="input"
 OUT_DIR="output"
 
-# remove empty files
-find $IN_DIR -type f -empty -delete
+# remove empty files except .gitkeep
+find $IN_DIR -type f -not -name .gitkeep -empty -delete
 
 function run {
     # iterate over each file in list
