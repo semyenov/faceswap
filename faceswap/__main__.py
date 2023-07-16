@@ -47,6 +47,7 @@ OVERLAY_POINTS = [
 COLOUR_CORRECT_BLUR_FRAC = 0.8
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(PREDICTOR_PATH)
@@ -143,7 +144,7 @@ def get_face_mask(im, landmarks):
 
     im = numpy.array([im, im, im]).transpose((1, 2, 0))
 
-    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * SCALE_FACTOR
+    im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * 1.0
     im = cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0)
 
     return im
@@ -277,11 +278,8 @@ def swap(
     Returns:
         None
     """
-    logger.log(f"\n\nInput File: {input_file}")
-
-    # print time for each image
     start_time = time.time()
-
+    
     try:
         input_im, input_landmarks = read_im_and_landmarks(input_file)
     except NoFaces:
@@ -313,8 +311,9 @@ def swap(
     cv2.imwrite(output_file, output_im)
 
     end_time = time.time()
-    logger.log(f"\nOutput File: {output_file}")
-    logger.log(f"\nProcessing time: {end_time - start_time} seconds")
+    logger.info(f"Input File: {input_file}")
+    logger.info(f"Output File: {output_file}")
+    logger.info(f"Processing time: {end_time - start_time} seconds\n")
 
     return
 
@@ -340,34 +339,35 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         try:
-            source_im, source_landmarks = read_im_and_landmarks(args.source_file)
+            source_im, source_landmarks = read_im_and_landmarks(
+                os.path.abspath(args.source_file)
+            )
             source_mask = get_face_mask(source_im, source_landmarks)
 
-            executor.map(
+            list(executor.map(
                 lambda input_im: swap(
                     source_im,
                     source_landmarks,
                     source_mask,
-                    input_file=os.path.join(args.input_dir, input_im),
-                    output_file=os.path.join(
-                        args.output_dir, os.path.basename(input_im)
+                    input_file=os.path.abspath(os.path.join(args.input_dir, input_im)),
+                    output_file=os.path.abspath(
+                        os.path.join(args.output_dir, os.path.basename(input_im))
                     ),
                     debug=args.debug,
                 ),
                 os.listdir(args.input_dir),
-            )
+            ))
+
         except NoFaces:
             logger.error("\nNo faces detected: source file is invalid")
             return
+        
         except ArgumentError:
             if args.debug:
                 logger.error("\nUnexpected error:", sys.exc_info()[0])
             else:
                 logger.error("\nUnexpected error: source file is invalid")
             return
-
-        executor.shutdown()
-
 
 if __name__ == "__main__":
     main()

@@ -31,7 +31,7 @@ function run {
         fi
 
         # call the Python script with the source face and current file as input
-        echo "***\nProcessing: $source_file"
+        echo "***\nProcessing: $source_file\n"
         python3 faceswap "./$source_file" "./$IN_DIR" "./$output_dir"
         echo ""
     done
